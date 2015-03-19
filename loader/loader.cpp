@@ -10,8 +10,10 @@ HWND hwnd;
 
 BOOL inject(std::string dll)
 {
+
 	HMODULE hLocKernel32 = GetModuleHandle(L"Kernel32");
 	FARPROC hLocLoadLibrary = GetProcAddress(hLocKernel32, "LoadLibraryA");
+
 	HANDLE hToken;
 	TOKEN_PRIVILEGES tkp;
 	if (OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hToken))
@@ -21,17 +23,25 @@ BOOL inject(std::string dll)
 		tkp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
 		AdjustTokenPrivileges(hToken, 0, &tkp, sizeof(tkp), NULL, NULL);
 	}
+
 	HANDLE hProc = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
+
 	dll += '\0';
 	LPVOID hRemoteMem = VirtualAllocEx(hProc, NULL, dll.size(), MEM_COMMIT, PAGE_READWRITE);
+
 	DWORD numBytesWritten;
 	WriteProcessMemory(hProc, hRemoteMem, dll.c_str(), dll.size(), &numBytesWritten);
+
 	HANDLE hRemoteThread = CreateRemoteThread(hProc, NULL, 0, (LPTHREAD_START_ROUTINE)hLocLoadLibrary, hRemoteMem, 0, NULL);
+
 	cout << hRemoteThread << endl;
+
 	bool res = false;
 	if (hRemoteThread)
 		res = (bool)WaitForSingleObject(hRemoteThread, MAXWAIT) != WAIT_TIMEOUT;
+
 	VirtualFreeEx(hProc, hRemoteMem, dll.size(), MEM_RELEASE);
+
 	CloseHandle(hProc);
 
 	return res;
@@ -39,7 +49,7 @@ BOOL inject(std::string dll)
 
 int _tmain(int argc, _TCHAR* argv[])
 {
-	hwnd = FindWindow(NULL, L"Prison Architect"); //Finds Prison Architect
+	hwnd = FindWindow(NULL, L"Prison Architect"); 
 
 	if (!hwnd)
 	{
